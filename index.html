@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>加密货币持仓监控</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+</head>
+<body>
+  <h1>持仓监控已运行</h1>
+  <p>打开浏览器控制台查看警报</p>
+
+<script>
+// ======================
+// 把你的监控代码粘贴这里
+// ======================
+
+let lastAlertTimes = {};
+let positionHistory = {};
+
+function getPositionData(currency) {
+  return Math.random() * 1000000;
+}
+
+function canSendAlert(currency) {
+  const now = moment();
+  const lastTime = lastAlertTimes[currency];
+  if (!lastTime) return true;
+  return now.diff(lastTime, 'hours', true) >= 1;
+}
+
+function checkAlertCondition(currency) {
+  const now = moment();
+  const history = positionHistory[currency] || [];
+  const currentPosition = getPositionData(currency);
+
+  history.push({ time: now.clone(), position: currentPosition });
+  positionHistory[currency] = history.filter(e => now.diff(e.time, 'minutes') <= 10);
+
+  const fiveMinAgo = now.clone().subtract(5, 'minutes');
+  const tenMinAgo = now.clone().subtract(10, 'minutes');
+
+  const fiveMinEntry = positionHistory[currency].find(e => e.time.isSameOrAfter(fiveMinAgo));
+  const tenMinEntry = positionHistory[currency].find(e => e.time.isSameOrAfter(tenMinAgo));
+
+  if (!fiveMinEntry || !tenMinEntry) return false;
+
+  const fiveChange = (currentPosition - fiveMinEntry.position) / fiveMinEntry.position * 100;
+  const tenChange = (currentPosition - tenMinEntry.position) / tenMinEntry.position * 100;
+
+  return fiveChange >= 5 || tenChange >= 10;
+}
+
+function sendAlertIfNeeded(currency) {
+  if (checkAlertCondition(currency) && canSendAlert(currency)) {
+    alert("📈 " + currency + " 持仓大幅上涨！");
+    lastAlertTimes[currency] = moment();
+  }
+}
+
+setInterval(() => {
+  sendAlertIfNeeded("BTC");
+  sendAlertIfNeeded("ETH");
+}, 60000);
+
+</script>
+</body>
+</html>
